@@ -1,0 +1,382 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 0: Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'babybau1010@gmail.com'
+      );
+    }
+
+    // Validation Blueprint: Product
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+        'sku', 'title', 'category', 'subcategory', 'price', 'stock', 'soldCount',
+        'rating', 'reviewCount', 'material', 'dimensions', 'origin',
+        'description', 'imageUrl', 'badge', 'isPublished', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'sku', 'title', 'category', 'subcategory', 'price', 'stock', 'soldCount',
+        'rating', 'reviewCount', 'material', 'dimensions', 'origin',
+        'description', 'imageUrl', 'badge', 'isPublished', 'updatedAt'
+      ]) &&
+      data.sku is string && data.sku.size() >= 2 && data.sku.size() <= 40 && data.sku.matches('^[A-Z0-9\\-]+$') &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 120 &&
+      data.category is string && data.category in ['Furniture & Lighting', 'Audio & Horology', 'Apothecary & Skincare', 'Ceramics & Tableware'] &&
+      data.subcategory is string && data.subcategory.size() >= 2 && data.subcategory.size() <= 60 &&
+      data.price is number && data.price >= 1 && data.price <= 100000 &&
+      data.stock is number && data.stock >= 0 && data.stock <= 100000 &&
+      data.soldCount is number && data.soldCount >= 0 && data.soldCount <= 1000000 &&
+      data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+      data.reviewCount is number && data.reviewCount >= 0 && data.reviewCount <= 100000 &&
+      data.material is string && data.material.size() >= 2 && data.material.size() <= 100 &&
+      data.dimensions is string && data.dimensions.size() >= 2 && data.dimensions.size() <= 80 &&
+      data.origin is string && data.origin.size() >= 2 && data.origin.size() <= 80 &&
+      data.description is string && data.description.size() >= 5 && data.description.size() <= 800 &&
+      data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 300 &&
+      data.badge is string && data.badge.size() <= 40 &&
+      data.isPublished is bool &&
+      data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: UserPublic
+    function isValidUserPublic(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'createdAt', 'updatedAt']) &&
+      data.keys().hasOnly(['uid', 'displayName', 'role', 'createdAt', 'updatedAt']) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+      data.role is string && data.role in ['customer', 'admin'] &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: UserPrivateInfo
+    function isValidUserPrivateInfo(data) {
+      return data.keys().hasAll([
+        'uid', 'email', 'phone', 'streetAddress', 'city',
+        'postalCode', 'country', 'defaultPaymentBrand', 'defaultPaymentLast4', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'email', 'phone', 'streetAddress', 'city',
+        'postalCode', 'country', 'defaultPaymentBrand', 'defaultPaymentLast4', 'updatedAt'
+      ]) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+      data.phone is string && data.phone.size() <= 30 &&
+      data.streetAddress is string && data.streetAddress.size() <= 160 &&
+      data.city is string && data.city.size() <= 80 &&
+      data.postalCode is string && data.postalCode.size() <= 24 &&
+      data.country is string && data.country.size() <= 60 &&
+      data.defaultPaymentBrand is string && data.defaultPaymentBrand.size() <= 30 &&
+      data.defaultPaymentLast4 is string && data.defaultPaymentLast4.size() <= 4 &&
+      data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: Order
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+        'orderNumber', 'userId', 'customerName', 'shippingDestination',
+        'subtotal', 'shippingCost', 'taxAmount', 'totalAmount', 'itemCount',
+        'paymentMethod', 'paymentStatus', 'paymentTransactionId',
+        'carrier', 'trackingNumber', 'status', 'trackingNote',
+        'estimatedDelivery', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'orderNumber', 'userId', 'customerName', 'shippingDestination',
+        'subtotal', 'shippingCost', 'taxAmount', 'totalAmount', 'itemCount',
+        'paymentMethod', 'paymentStatus', 'paymentTransactionId',
+        'carrier', 'trackingNumber', 'status', 'trackingNote',
+        'estimatedDelivery', 'createdAt', 'updatedAt'
+      ]) &&
+      data.orderNumber is string && data.orderNumber.size() >= 4 && data.orderNumber.size() <= 32 && data.orderNumber.matches('^[A-Z0-9\\-]+$') &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 80 &&
+      data.shippingDestination is string && data.shippingDestination.size() >= 3 && data.shippingDestination.size() <= 240 &&
+      data.subtotal is number && data.subtotal >= 0 && data.subtotal <= 1000000 &&
+      data.shippingCost is number && data.shippingCost >= 0 && data.shippingCost <= 10000 &&
+      data.taxAmount is number && data.taxAmount >= 0 && data.taxAmount <= 200000 &&
+      data.totalAmount is number && data.totalAmount >= 1 && data.totalAmount <= 1200000 &&
+      data.itemCount is number && data.itemCount >= 1 && data.itemCount <= 500 &&
+      data.paymentMethod is string && data.paymentMethod in ['card', 'express_wallet', 'cod'] &&
+      data.paymentStatus is string && data.paymentStatus in ['paid', 'authorized', 'cod_pending', 'refunded'] &&
+      data.paymentTransactionId is string && data.paymentTransactionId.size() >= 4 && data.paymentTransactionId.size() <= 64 && data.paymentTransactionId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.carrier is string && data.carrier.size() >= 2 && data.carrier.size() <= 60 &&
+      data.trackingNumber is string && data.trackingNumber.size() >= 4 && data.trackingNumber.size() <= 64 && data.trackingNumber.matches('^[A-Z0-9\\-]+$') &&
+      data.status is string && data.status in ['processing', 'packed', 'in_transit', 'out_for_delivery', 'delivered', 'cancelled'] &&
+      data.trackingNote is string && data.trackingNote.size() >= 2 && data.trackingNote.size() <= 200 &&
+      data.estimatedDelivery is string && data.estimatedDelivery.size() >= 2 && data.estimatedDelivery.size() <= 40 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: OrderItem
+    function isValidOrderItem(data) {
+      return data.keys().hasAll([
+        'orderId', 'userId', 'productId', 'title', 'category',
+        'finish', 'unitPrice', 'quantity', 'lineTotal', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'orderId', 'userId', 'productId', 'title', 'category',
+        'finish', 'unitPrice', 'quantity', 'lineTotal', 'createdAt'
+      ]) &&
+      data.orderId is string && data.orderId.size() >= 1 && data.orderId.size() <= 128 && data.orderId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.productId is string && data.productId.size() >= 1 && data.productId.size() <= 128 && data.productId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 120 &&
+      data.category is string && data.category.size() >= 2 && data.category.size() <= 60 &&
+      data.finish is string && data.finish.size() >= 1 && data.finish.size() <= 60 &&
+      data.unitPrice is number && data.unitPrice >= 1 && data.unitPrice <= 100000 &&
+      data.quantity is number && data.quantity >= 1 && data.quantity <= 100 &&
+      data.lineTotal is number && data.lineTotal >= 1 && data.lineTotal <= 1000000 &&
+      data.createdAt is timestamp;
+    }
+
+    // Validation Blueprint: Review
+    function isValidReview(data) {
+      return data.keys().hasAll([
+        'productId', 'userId', 'authorName', 'rating', 'title',
+        'comment', 'verifiedPurchase', 'helpfulCount', 'isPublished',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'productId', 'userId', 'authorName', 'rating', 'title',
+        'comment', 'verifiedPurchase', 'helpfulCount', 'isPublished',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.productId is string && data.productId.size() >= 1 && data.productId.size() <= 128 && data.productId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+      data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 100 &&
+      data.comment is string && data.comment.size() >= 5 && data.comment.size() <= 600 &&
+      data.verifiedPurchase is bool &&
+      data.helpfulCount is number && data.helpfulCount >= 0 && data.helpfulCount <= 100000 &&
+      data.isPublished is bool &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: AdminRecord
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+      data.keys().hasOnly(['uid', 'email', 'createdAt']) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+      data.createdAt is timestamp;
+    }
+
+    // Collection 1: /products/{productId}
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (existing().isPublished == true || isAdmin());
+      allow list: if existing().isPublished == true || isAdmin();
+      allow create: if isVerifiedUser() && isValidId(productId) && isValidProduct(incoming()) && incoming().updatedAt == request.time && (isAdmin() || productId.matches('^prod-[0-9]{2,3}$'));
+      allow update: if isVerifiedUser() && isValidId(productId) && isValidProduct(incoming()) && incoming().updatedAt == request.time && (
+        isAdmin() ||
+        (
+          // Action: Verified Customer Inventory Purchase Decrement
+          incoming().diff(existing()).affectedKeys().hasOnly(['stock', 'soldCount', 'updatedAt']) &&
+          incoming().sku == existing().sku &&
+          incoming().stock >= 0 &&
+          incoming().stock < existing().stock &&
+          incoming().soldCount > existing().soldCount
+        ) ||
+        (
+          // Action: Verified Customer Review Aggregate Update
+          incoming().diff(existing()).affectedKeys().hasOnly(['rating', 'reviewCount', 'updatedAt']) &&
+          incoming().sku == existing().sku &&
+          incoming().reviewCount == existing().reviewCount + 1
+        )
+      );
+      allow delete: if isVerifiedUser() && isValidId(productId) && isAdmin();
+    }
+
+    // Collection 2: /users/{userId} (Public non-PII user profile)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin() && existing().uid is string;
+      allow create: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId &&
+        isValidUserPublic(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (incoming().role == 'customer' || isAdmin());
+      allow update: if isVerifiedUser() && isValidId(userId) && isValidUserPublic(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            request.auth.uid == userId &&
+            incoming().role == existing().role &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(userId) && isAdmin();
+
+      // Subcollection 2a: /users/{userId}/private/{docId} (Pillar 6 PII Isolation + Pillar 1 Master Gate)
+      match /private/{docId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(docId) &&
+          (request.auth.uid == userId || isAdmin()) &&
+          exists(/databases/$(database)/documents/users/$(userId));
+        allow list: if isSignedIn() && isValidId(userId) &&
+          (request.auth.uid == userId || isAdmin()) &&
+          existing().uid == userId;
+        allow create: if isVerifiedUser() && isValidId(userId) && isValidId(docId) && docId == 'info' &&
+          request.auth.uid == userId &&
+          isValidUserPrivateInfo(incoming()) &&
+          incoming().uid == request.auth.uid &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isVerifiedUser() && isValidId(userId) && isValidId(docId) && docId == 'info' &&
+          isValidUserPrivateInfo(incoming()) &&
+          incoming().uid == existing().uid &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/users/$(userId)) && (
+            isAdmin() ||
+            (
+              request.auth.uid == userId &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'email', 'phone', 'streetAddress', 'city', 'postalCode',
+                'country', 'defaultPaymentBrand', 'defaultPaymentLast4', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isVerifiedUser() && isValidId(userId) && isValidId(docId) && isAdmin();
+      }
+    }
+
+    // Collection 3: /orders/{orderId}
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'processing' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow update: if isVerifiedUser() && isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().orderNumber == existing().orderNumber &&
+        incoming().totalAmount == existing().totalAmount &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            // Terminal State Lock: Non-admins cannot update once delivered or cancelled
+            !(existing().status in ['delivered', 'cancelled']) &&
+            existing().userId == request.auth.uid && (
+              // Action 1: Customer Order Cancellation while processing
+              (
+                existing().status == 'processing' &&
+                incoming().status == 'cancelled' &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'trackingNote', 'updatedAt'])
+              ) ||
+              // Action 2: Customer Live Order Tracking Checkpoint Progression
+              (
+                incoming().status in ['packed', 'in_transit', 'out_for_delivery', 'delivered'] &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'trackingNote', 'updatedAt'])
+              )
+            )
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(orderId) && isAdmin();
+
+      // Subcollection 3a: /orders/{orderId}/items/{itemId} (Pillar 1 Master Gate)
+      match /items/{itemId} {
+        allow get: if isSignedIn() && isValidId(orderId) && isValidId(itemId) && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+          isAdmin()
+        );
+        allow list: if isSignedIn() && isValidId(orderId) && (
+          existing().userId == request.auth.uid ||
+          isAdmin()
+        );
+        allow create: if isVerifiedUser() && isValidId(orderId) && isValidId(itemId) &&
+          isValidOrderItem(incoming()) &&
+          incoming().orderId == orderId &&
+          incoming().userId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          getAfter(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid;
+        allow update: if false;
+        allow delete: if isVerifiedUser() && isValidId(orderId) && isValidId(itemId) && isAdmin();
+      }
+    }
+
+    // Collection 4: /reviews/{reviewId}
+    match /reviews/{reviewId} {
+      allow get: if isValidId(reviewId) && (
+        existing().isPublished == true ||
+        (isSignedIn() && existing().userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if existing().isPublished == true ||
+        (isSignedIn() && existing().userId == request.auth.uid) ||
+        isAdmin();
+      allow create: if isVerifiedUser() && isValidId(reviewId) &&
+        isValidReview(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().helpfulCount == 0 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/products/$(incoming().productId));
+      allow update: if isVerifiedUser() && isValidId(reviewId) &&
+        isValidReview(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().productId == existing().productId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            // Action 1: Author edits own review content
+            existing().userId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['rating', 'title', 'comment', 'updatedAt'])
+          ) ||
+          (
+            // Action 2: Verified user marks review as helpful
+            incoming().helpfulCount == existing().helpfulCount + 1 &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['helpfulCount', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(reviewId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Collection 5: /admins/{adminId}
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if isAdmin() && existing().uid is string;
+      allow create: if isVerifiedUser() && isValidId(adminId) && isValidAdminRecord(incoming()) && incoming().createdAt == request.time && isAdmin();
+      allow update: if isVerifiedUser() && isValidId(adminId) && isValidAdminRecord(incoming()) && incoming().uid == existing().uid && incoming().createdAt == existing().createdAt && isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['email']);
+      allow delete: if isVerifiedUser() && isValidId(adminId) && isAdmin();
+    }
+  }
+}

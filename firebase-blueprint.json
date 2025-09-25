@@ -1,0 +1,539 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Catalog product item managed by admins and purchased by customers.",
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[A-Z0-9\\-]+$",
+          "description": "Unique stock keeping unit identifier"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120,
+          "description": "Product display title"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Furniture & Lighting", "Audio & Horology", "Apothecary & Skincare", "Ceramics & Tableware"],
+          "description": "Primary collection category"
+        },
+        "subcategory": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Specific object classification"
+        },
+        "price": {
+          "type": "number",
+          "description": "Retail price in USD"
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available inventory units"
+        },
+        "soldCount": {
+          "type": "number",
+          "description": "Cumulative units sold"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average customer rating from 1 to 5"
+        },
+        "reviewCount": {
+          "type": "number",
+          "description": "Total published customer reviews"
+        },
+        "material": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Primary craft material"
+        },
+        "dimensions": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Physical dimensions specification"
+        },
+        "origin": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Studio or country of craft origin"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 800,
+          "description": "Detailed architectural and craft description"
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Studio photograph asset path"
+        },
+        "badge": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Single subtle edition tag"
+        },
+        "isPublished": {
+          "type": "boolean",
+          "description": "Whether the item is visible in the public storefront"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last inventory or metadata update timestamp"
+        }
+      },
+      "required": [
+        "sku",
+        "title",
+        "category",
+        "subcategory",
+        "price",
+        "stock",
+        "soldCount",
+        "rating",
+        "reviewCount",
+        "material",
+        "dimensions",
+        "origin",
+        "description",
+        "imageUrl",
+        "badge",
+        "isPublished",
+        "updatedAt"
+      ]
+    },
+    "UserPublic": {
+      "title": "UserPublic",
+      "description": "Publicly non-sensitive user account record isolated from PII.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Customer display name"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["customer", "admin"],
+          "description": "Account access role"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account creation server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last profile update server timestamp"
+        }
+      },
+      "required": ["uid", "displayName", "role", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated PII subcollection document storing contact, shipping, and saved payment preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner Firebase Auth UID"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Verified customer email address"
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Shipping contact phone number"
+        },
+        "streetAddress": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Primary street delivery address"
+        },
+        "city": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Delivery city"
+        },
+        "postalCode": {
+          "type": "string",
+          "maxLength": 24,
+          "description": "Delivery postal or ZIP code"
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Delivery country"
+        },
+        "defaultPaymentBrand": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Saved card brand label"
+        },
+        "defaultPaymentLast4": {
+          "type": "string",
+          "maxLength": 4,
+          "description": "Last 4 digits of saved payment method"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last PII update"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "phone",
+        "streetAddress",
+        "city",
+        "postalCode",
+        "country",
+        "defaultPaymentBrand",
+        "defaultPaymentLast4",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order header with payment verification and real-time fulfillment tracking.",
+      "type": "object",
+      "properties": {
+        "orderNumber": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]+$",
+          "description": "Human-readable order reference"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Purchasing user UID"
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Recipient full name"
+        },
+        "shippingDestination": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 240,
+          "description": "Formatted delivery address summary"
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "Order subtotal before tax and shipping"
+        },
+        "shippingCost": {
+          "type": "number",
+          "description": "Shipping fee in USD"
+        },
+        "taxAmount": {
+          "type": "number",
+          "description": "Calculated tax in USD"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Final charged amount in USD"
+        },
+        "itemCount": {
+          "type": "number",
+          "description": "Total quantity of items in order"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["card", "express_wallet", "cod"],
+          "description": "Selected payment gateway method"
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["paid", "authorized", "cod_pending", "refunded"],
+          "description": "Gateway settlement status"
+        },
+        "paymentTransactionId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Gateway transaction reference ID"
+        },
+        "carrier": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Assigned logistics carrier"
+        },
+        "trackingNumber": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[A-Z0-9\\-]+$",
+          "description": "Carrier tracking code"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["processing", "packed", "in_transit", "out_for_delivery", "delivered", "cancelled"],
+          "description": "Real-time fulfillment lifecycle stage"
+        },
+        "trackingNote": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Latest checkpoint telemetry message"
+        },
+        "estimatedDelivery": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Estimated arrival date window"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Order placement server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Latest status change server timestamp"
+        }
+      },
+      "required": [
+        "orderNumber",
+        "userId",
+        "customerName",
+        "shippingDestination",
+        "subtotal",
+        "shippingCost",
+        "taxAmount",
+        "totalAmount",
+        "itemCount",
+        "paymentMethod",
+        "paymentStatus",
+        "paymentTransactionId",
+        "carrier",
+        "trackingNumber",
+        "status",
+        "trackingNote",
+        "estimatedDelivery",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OrderItem": {
+      "title": "OrderItem",
+      "description": "Individual line item subcollection document belonging to an Order.",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent Order ID"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Purchasing user UID"
+        },
+        "productId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Purchased Product ID"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Snapshot of product title"
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Product category"
+        },
+        "finish": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Selected material or finish option"
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "Unit price at time of checkout"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Units purchased"
+        },
+        "lineTotal": {
+          "type": "number",
+          "description": "Calculated line item total"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp"
+        }
+      },
+      "required": [
+        "orderId",
+        "userId",
+        "productId",
+        "title",
+        "category",
+        "finish",
+        "unitPrice",
+        "quantity",
+        "lineTotal",
+        "createdAt"
+      ]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Verified customer review and rating for a catalog product.",
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Target product ID"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Author Firebase Auth UID"
+        },
+        "authorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Public display name of reviewer"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Star rating between 1 and 5"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100,
+          "description": "Review headline"
+        },
+        "comment": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 600,
+          "description": "Detailed customer review body"
+        },
+        "verifiedPurchase": {
+          "type": "boolean",
+          "description": "Whether reviewer ordered the product"
+        },
+        "helpfulCount": {
+          "type": "number",
+          "description": "Number of helpful votes"
+        },
+        "isPublished": {
+          "type": "boolean",
+          "description": "Whether review is publicly visible"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp"
+        }
+      },
+      "required": [
+        "productId",
+        "userId",
+        "authorName",
+        "rating",
+        "title",
+        "comment",
+        "verifiedPurchase",
+        "helpfulCount",
+        "isPublished",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted admin registry document.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Admin user UID"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Admin verified email"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Storefront product catalog and live inventory records"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublic" },
+      "description": "Public user account metadata"
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Isolated private customer PII and shipping/payment preferences"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer order headers and real-time tracking status"
+    },
+    "/orders/{orderId}/items/{itemId}": {
+      "schema": { "$ref": "#/entities/OrderItem" },
+      "description": "Order line item subcollection"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Customer product reviews and ratings"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Trusted administrator lookup collection"
+    }
+  }
+}
